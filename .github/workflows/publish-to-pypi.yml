@@ -8,9 +8,16 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Set up Python 3.7
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.7
+      - uses: actions/setup-node@v2
+      - name: Running unit tests
+        run: |
+          pip install -r requirements.txt
+          python -m unittest discover
+          npm install -g pyright
+          pyright nimbella/*
       - name: Install setuptools, wheel
         run: >-
           python -m

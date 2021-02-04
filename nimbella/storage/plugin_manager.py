@@ -17,14 +17,17 @@ def find_plugin(id):
     logging.debug(f'Looking for plugin from identifier: {id}')
     return PLUGINS.get(id)
 
+# Find & import all potential Python plugins under the storage/plugins directory 
 def import_plugins(package = "nimbella.storage.plugins"):
-    files = importlib.resources.contents(package)
+    files = resources.contents(package)
     plugins = [f[:-3] for f in files if f.endswith(".py") and f[0] != "_"]
     logging.debug(f'Discovered files in the {package} directory: {plugins}')
     for plugin in plugins:
         importlib.import_module(f"{package}.{plugin}")
         logging.debug(f'Importing potential plugin file: {package}.{plugin}')
 
+# Use registered sub-classes of the abstract plugin class
+# to build lookup table from plugin ids to classes.
 def register_plugins():
     for sc in AbstractStoragePlugin.__subclasses__():
         plugin_name = sc.id()
