@@ -66,7 +66,7 @@ class GoogleCloudStoragePlugin(AbstractStoragePlugin):
     def file(self, destination) -> GoogleCloudStorageFile:
         return GoogleCloudStorageFile(self.bucket.blob(destination))
 
-    def deleteFiles(self, prefix):
+    def deleteFiles(self, prefix=None):
         blobs_to_delete = list(self.client.list_blobs(self.bucket, prefix=prefix))
         self.bucket.delete_blobs(blobs_to_delete)
 
