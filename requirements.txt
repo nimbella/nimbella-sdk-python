@@ -1,3 +1,4 @@
 ## Both of these packages are installed by the runtime already
 google-cloud-storage == 1.35.1
 redis == 3.4.1
+boto3 == 1.17.5
