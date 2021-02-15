@@ -4,12 +4,19 @@ from typing import Union
 from urllib.parse import urlparse
 
 import boto3
+import botocore
 
 # Simple wrapper around AWS S3 Object class to provide
 # generic "storage file" for this provider
 class S3StorageFile(AbstractStorageFile):
-    def __init__(self, file):
+    def __init__(self, file, web, client):
         self.file = file
+        self.web = web
+        self.client = client
+
+    @property
+    def acl(self) -> str:
+        return 'public-read' if self.web else ''
 
     @property
     def name(self) -> str:
@@ -17,33 +24,47 @@ class S3StorageFile(AbstractStorageFile):
 
     @property
     def metadata(self) -> dict:
-        # return self.blob.metadata
-        pass
+        if self.exists():
+            return self.file.metadata
+        else:
+            return {}
 
     @metadata.setter
     def metadata(self, metadata: dict):
-        # self.blob.metadata = metadata
-        pass
+        self.file.copy_from(CopySource={'Bucket':self.file.bucket_name, 'Key':self.file.key}, Metadata=metadata, MetadataDirective='REPLACE', ACL=self.acl)
 
+    # This is convoluted but AWS SDK does not have a simple
+    # exists() method, see: https://stackoverflow.com/questions/33842944
     def exists(self) -> bool:
-        # return self.blob.exists()
-        pass
+        try:
+            self.file.load()
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                return False
+            else:
+                raise
+        else:
+            return True
 
     def delete(self) -> None:
-        # self.blob.delete()
-        pass
+        self.file.delete()
 
     def save(self, data: Union[str, bytes], contentType: str) -> None:
-        # self.blob.upload_from_string(data=data, content_type=contentType)
-        pass
+        body = bytes(data, 'utf-8') if isinstance(data, str) else data
+        self.file.upload_from_string(Body=data, ContentType=contentType, ACL=self.acl)
 
     def download(self) -> bytes:
-        # return self.blob.download_as_bytes()
-        pass
+        response = self.file.get()
+        return response['Body'].read()
 
     def signed_url(self, version: str, action: str, expires: int, contentType: str) -> str:
-        # return self.blob.generate_signed_url(expiration=expires, version=version, method=action, content_type=contentType)
-        pass
+        method = f'{action.lower()}_object'
+        params = {
+            "Bucket": self.file.Bucket().name,
+            "Key": self.name,
+            "ContentType": contentType
+        }
+        return self.client.generate_presigned_url(method, Params=params, ExpiresIn=expires)
 
 # Simple wrapper around GoogleCloudStorage bucket class to provide
 # generic bucket storage service for this provider
@@ -54,17 +75,18 @@ class AWSStoragePlugin(AbstractStoragePlugin):
 
     @staticmethod
     def id() -> str:
-        return "@nimbella/storage-aws"
+        return "@nimbella/storage-s3"
 
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
-        #return service_account.Credentials.from_service_account_info(credentials)
-        pass
+        return credentials
 
     @staticmethod
     def create_client(project_id: str, credentials: dict) -> None:
-        #return gstorage.Client(project_id, credentials)
-        pass
+        return boto3.client('s3',
+            aws_access_key_id=credentials['AccessKeyId'],
+            aws_secret_access_key=credentials['SecretAccessKey']
+        )
 
     @property
     def url(self) -> Union[str, None]:
@@ -76,7 +98,7 @@ class AWSStoragePlugin(AbstractStoragePlugin):
                 return f"http://{self.namespace}-nimbella-io.{hostname}"
 
     def file(self, destination) -> S3StorageFile:
-        return S3StorageFile(self.bucket.Object(destination))
+        return S3StorageFile(self.bucket.Object(destination), self.web, self.client)
 
     def deleteFiles(self, prefix=None) -> None:
         objects = self.client.list_objects_v2(
@@ -88,22 +110,26 @@ class AWSStoragePlugin(AbstractStoragePlugin):
         )
 
     def upload(self, path, destination, contentType, cacheControl):
-        #blob = self.bucket.blob(destination)
-        #blob.cache_control = cacheControl
-        #with open(path, "rb") as f:
-        #    blob.upload_from_file(file_obj=f, content_type=contentType)
-        pass
+        extraArgs = {
+            "ContentType": contentType,
+            "CacheControl": cacheControl
+        }
+        self.bucket.upload_file(path, destination, ExtraArgs=extraArgs)
 
     def setWebsite(self, mainPageSuffix = None, notFoundPage = None):
-        #self.bucket.configure_website(mainPageSuffix, notFoundPage)
-        pass
+        bucket_website = self.bucket.Website()
+        website_configuration = {
+            'ErrorDocument': {'Key': notFoundPage},
+            'IndexDocument': {'Suffix': mainPageSuffix},
+        }
+        bucket_website.put(WebsiteConfiguration=website_configuration)
 
     def getFiles(self, prefix = None) -> list:
         objects = self.client.list_objects_v2(
             Bucket=self.bucket_key,
             Prefix=prefix
         )
-        return list(map(lambda o: S3StorageFile(self.bucket.Object(o.get('Key'))), objects.get("Contents")))
+        return list(map(lambda o: S3StorageFile(self.bucket.Object(o.get('Key')), self.web, self.client), objects.get("Contents")))
 
     @property
     def bucket_key(self):

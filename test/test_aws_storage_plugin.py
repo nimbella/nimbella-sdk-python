@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 class TestAWSStoragePlugin(unittest.TestCase):
     def test_aws_storage_plugin_id(self):
-        id = "@nimbella/storage-aws"
+        id = "@nimbella/storage-s3"
         self.assertEqual(AWSStoragePlugin.id(), id)
 
     def test_constructor(self):
@@ -101,33 +101,33 @@ class TestAWSStoragePlugin(unittest.TestCase):
         self.assertEqual(aws.file(destination).name, destination)
         aws.bucket.Object.assert_called_with(destination)
 
-    '''
     def test_bucket_set_website(self):
         client = MagicMock()
         aws = AWSStoragePlugin(client, '', '', True, '')
         mainPageSuffix = "index.html"
         notFoundPage = "404.html"
-        aws.bucket.configure_website = MagicMock()
+        website = MagicMock()
+        aws.bucket.Website = MagicMock(return_value = website)
+        WebsiteConfiguration = {
+            'ErrorDocument': {'Key': notFoundPage},
+            'IndexDocument': {'Suffix': mainPageSuffix},
+        }
         aws.setWebsite(mainPageSuffix, notFoundPage)
-        aws.bucket.configure_website.assert_called_with(mainPageSuffix, notFoundPage)
+        website.put.assert_called_with(WebsiteConfiguration=WebsiteConfiguration)
 
-    @patch("builtins.open", new_callable=mock_open, read_data="data")
-    def test_bucket_upload(self, mock_file):
+    def test_bucket_upload(self):
         client = MagicMock()
         aws = AWSStoragePlugin(client, '', '', True, '')
         path = '/file/path.txt'
         destination = 'folder/path.txt'
         contentType = 'text/plain'
         cacheControl = 'no-cache'
+        extraArgs = {
+            "ContentType": contentType,
+            "CacheControl": cacheControl
+        }
 
-        blob = Blob(name=destination, bucket='some-bucket')
-        aws = AWSStoragePlugin(client, '', '', True, '')
-        aws.bucket.blob = MagicMock(return_value=blob)
-        blob.upload_from_file = MagicMock()
+        aws.bucket.upload_file = MagicMock()
+
         aws.upload(path, destination, contentType, cacheControl)
-        aws.bucket.blob.assert_called_with(destination)
-        blob.upload_from_file.assert_called_with(file_obj=mock_file(path, 'rb'), content_type=contentType)
-        mock_file.assert_called_with(path, 'rb')
-
-'''
-
+        aws.bucket.upload_file.assert_called_with(path, destination, ExtraArgs=extraArgs)
