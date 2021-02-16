@@ -56,6 +56,6 @@ def storage(web=False):
     plugin = plugin_manager.find_plugin(provider_id)
     # TODO: Cannot find provider?
     provider_creds = plugin.prepare_creds(creds)
-    provider_client = plugin.create_client(creds['project_id'], provider_creds)
+    provider_client = plugin.create_client(provider_creds)
 
     return plugin(provider_client, namespace, apiHost, web, creds)

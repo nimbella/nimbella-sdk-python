@@ -51,7 +51,7 @@ class S3StorageFile(AbstractStorageFile):
 
     def save(self, data: Union[str, bytes], contentType: str) -> None:
         body = bytes(data, 'utf-8') if isinstance(data, str) else data
-        self.file.upload_from_string(Body=data, ContentType=contentType, ACL=self.acl)
+        self.file.put(Body=data, ContentType=contentType, ACL=self.acl)
 
     def download(self) -> bytes:
         response = self.file.get()
@@ -62,7 +62,7 @@ class S3StorageFile(AbstractStorageFile):
         params = {
             "Bucket": self.file.Bucket().name,
             "Key": self.name,
-            "ContentType": contentType
+            "ResponseContentType": contentType
         }
         return self.client.generate_presigned_url(method, Params=params, ExpiresIn=expires)
 
@@ -71,7 +71,7 @@ class S3StorageFile(AbstractStorageFile):
 class AWSStoragePlugin(AbstractStoragePlugin):
     def __init__(self, client, namespace, apiHost, web, credentials):
         super().__init__(client, namespace, apiHost, web, credentials)
-        self.bucket = self.client.Bucket(self.bucket_key)
+        self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
 
     @staticmethod
     def id() -> str:
@@ -79,14 +79,14 @@ class AWSStoragePlugin(AbstractStoragePlugin):
 
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
-        return credentials
+        return credentials['credentials']
 
     @staticmethod
-    def create_client(project_id: str, credentials: dict) -> None:
-        return boto3.client('s3',
-            aws_access_key_id=credentials['AccessKeyId'],
-            aws_secret_access_key=credentials['SecretAccessKey']
-        )
+    def create_client(credentials: dict) ->  botocore.client.BaseClient:
+        session = boto3.Session(
+            aws_access_key_id=credentials['accessKeyId'],
+            aws_secret_access_key=credentials['secretAccessKey'])
+        return session
 
     @property
     def url(self) -> Union[str, None]:
@@ -98,16 +98,13 @@ class AWSStoragePlugin(AbstractStoragePlugin):
                 return f"http://{self.namespace}-nimbella-io.{hostname}"
 
     def file(self, destination) -> S3StorageFile:
-        return S3StorageFile(self.bucket.Object(destination), self.web, self.client)
+        return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3'))
 
-    def deleteFiles(self, prefix=None) -> None:
-        objects = self.client.list_objects_v2(
-            Bucket=self.bucket_key,
-            Prefix=prefix
-        )
-        self.bucket.delete_objects(
-            Delete={ "Objects": objects["Contents"] }
-        )
+    def deleteFiles(self, prefix='') -> None:
+        objects = self.bucket.objects.filter(Prefix=prefix)
+        keys = list(map(lambda o: {"Key": o.key}, objects))
+        if keys:
+            self.bucket.delete_objects(Delete={ "Objects": keys })
 
     def upload(self, path, destination, contentType, cacheControl):
         extraArgs = {
@@ -124,15 +121,11 @@ class AWSStoragePlugin(AbstractStoragePlugin):
         }
         bucket_website.put(WebsiteConfiguration=website_configuration)
 
-    def getFiles(self, prefix = None) -> list:
-        objects = self.client.list_objects_v2(
-            Bucket=self.bucket_key,
-            Prefix=prefix
-        )
-        return list(map(lambda o: S3StorageFile(self.bucket.Object(o.get('Key')), self.web, self.client), objects.get("Contents")))
+    def getFiles(self, prefix = '') -> list:
+        objects = self.bucket.objects.filter(Prefix=prefix)
+        return list(map(lambda o: S3StorageFile(self.bucket.Object(o.key), self.web, self.client.client('s3')), objects))
 
     @property
     def bucket_key(self):
-        hostpart = "-".join(self.apiHost.replace("https://", "").split("."))
         datapart = "" if self.web else "data-"
-        return f"{datapart}{self.namespace}-{hostpart}"
+        return f"{datapart}{self.namespace}-nimbella-io"

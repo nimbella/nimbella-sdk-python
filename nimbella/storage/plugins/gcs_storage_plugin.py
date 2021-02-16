@@ -37,7 +37,7 @@ class GoogleCloudStorageFile(AbstractStorageFile):
         return self.blob.download_as_bytes()
 
     def signed_url(self, version: str, action: str, expires: int, contentType: str) -> str:
-        return self.blob.generate_signed_url(expiration=expires, version=version, method=action, content_type=contentType)
+        return self.blob.generate_signed_url(expiration=expires, version=version, method=action, response_type=contentType)
 
 # Simple wrapper around GoogleCloudStorage bucket class to provide
 # generic bucket storage service for this provider
@@ -55,8 +55,8 @@ class GoogleCloudStoragePlugin(AbstractStoragePlugin):
         return service_account.Credentials.from_service_account_info(credentials)
 
     @staticmethod
-    def create_client(project_id: str, credentials: service_account.Credentials) -> gstorage.Client:
-        return gstorage.Client(project_id, credentials)
+    def create_client(credentials: service_account.Credentials) -> gstorage.Client:
+        return gstorage.Client(credentials=credentials)
 
     @property
     def url(self) -> Union[str, None]:

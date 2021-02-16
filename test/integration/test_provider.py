@@ -26,7 +26,8 @@ class TestStoragePlugin(unittest.TestCase):
         self.bucket.deleteFiles()
 
     def tearDown(self):
-        self.bucket.deleteFiles()
+#        self.bucket.deleteFiles()
+        pass
 
     def test_can_add_and_remove_files_in_bucket(self):
         files = {
@@ -76,13 +77,13 @@ class TestStoragePlugin(unittest.TestCase):
         f = self.bucket.file(filename)
 
         f.save(contents, 'text/plain')
-        expires = datetime.now() + timedelta(seconds=86400)
+        expires = 3600
         method = "GET"
 
         url = f.signed_url("v4", method, expires, "text/plain")
         try: 
             req = Request(url)
-            req.add_header('Content-Type', 'text/plain')
+            req.add_header('Accept', 'text/plain')
             resp = urlopen(req)
         except HTTPError as error:
             data = error.read()
