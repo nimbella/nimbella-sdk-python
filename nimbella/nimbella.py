@@ -54,7 +54,9 @@ def storage(web=False):
 
     provider_id = creds.get('provider', '@nimbella/storage-gcs')
     plugin = plugin_manager.find_plugin(provider_id)
-    # TODO: Cannot find provider?
+    if plugin is None:
+        raise Exception(f'Unable to find storage provider plugin with identifier: {provider_id}')
+
     provider_creds = plugin.prepare_creds(creds)
     provider_client = plugin.create_client(provider_creds)
 
