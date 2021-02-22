@@ -12,6 +12,8 @@ jobs:
         with:
           python-version: 3.7
       - uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
       - name: Running unit tests
         run: |
           pip install -r requirements.txt
