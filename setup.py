@@ -27,10 +27,10 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='nimbella',
-    version='1.0.0',
+    version='2.0.0',
     author='Nimbella Corporation',
     author_email='info@nimbella.com',
-    description='A python package to interact with nimbella.com services.',
+    description='A python package to interact with Nimbella cloud services.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/nimbella/nimbella-sdk-python",
