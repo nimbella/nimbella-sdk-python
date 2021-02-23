@@ -1,4 +1,3 @@
-
 """
 /**
  * Copyright (c) 2020-present, Nimbella, Inc.
@@ -23,7 +22,7 @@ import json
 import redis as kv
 from google.cloud import storage as gstorage
 from google.oauth2 import service_account
-
+from .storage import plugin_manager
 
 def redis():
     redisIP = os.getenv('__NIM_REDIS_IP', "")
@@ -49,13 +48,16 @@ def storage(web=False):
         raise Exception('Object store credentials are not available.')
     try:
         creds = json.loads(creds)
-        client = gstorage.Client(
-            creds['project_id'], credentials=service_account.Credentials.from_service_account_info(creds))
     except:
         raise Exception(
             'Insufficient information in provided credentials or credentials were invalid.')
 
-    hostpart = '-'.join(apiHost.replace('https://', '').split('.'))
-    datapart = '' if web else 'data-'
-    bucket = datapart + namespace + '-' + hostpart
-    return client.get_bucket(bucket)
+    provider_id = creds.get('provider', '@nimbella/storage-gcs')
+    plugin = plugin_manager.find_plugin(provider_id)
+    if plugin is None:
+        raise Exception(f'Unable to find storage provider plugin with identifier: {provider_id}')
+
+    provider_creds = plugin.prepare_creds(creds)
+    provider_client = plugin.create_client(provider_creds)
+
+    return plugin(provider_client, namespace, apiHost, web, creds)
