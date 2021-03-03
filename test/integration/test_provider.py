@@ -30,7 +30,6 @@ class TestStoragePlugin(unittest.TestCase):
     def tearDown(self):
         self.bucket.deleteFiles()
         self.web_bucket.deleteFiles()
-        pass
 
     def test_can_add_and_remove_files_in_bucket(self):
         files = {
