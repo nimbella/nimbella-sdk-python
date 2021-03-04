@@ -5,6 +5,7 @@ from google.cloud.storage.blob import Blob
 from google.oauth2 import service_account
 
 from typing import Union
+from urllib.parse import urlparse
 
 # Simple wrapper around GoogleCloudStorage Blob class to provide
 # generic "storage file" for this provider
@@ -61,7 +62,8 @@ class GoogleCloudStoragePlugin(AbstractStoragePlugin):
     @property
     def url(self) -> Union[str, None]:
         if self.web:
-            return f'https://{self.bucket_key}'
+            hostname = urlparse(self.apiHost).netloc
+            return f'https://{self.namespace}-{hostname}'
 
     def file(self, destination) -> GoogleCloudStorageFile:
         return GoogleCloudStorageFile(self.bucket.blob(destination))
@@ -78,6 +80,7 @@ class GoogleCloudStoragePlugin(AbstractStoragePlugin):
 
     def setWebsite(self, mainPageSuffix = None, notFoundPage = None):
         self.bucket.configure_website(mainPageSuffix, notFoundPage)
+        self.bucket.update()
 
     def getFiles(self, prefix = None) -> list:
         all_blobs = list(self.client.list_blobs(self.bucket, prefix=prefix))

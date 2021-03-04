@@ -20,14 +20,16 @@ class TestStoragePlugin(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.bucket = storage()
+        cls.web_bucket = storage(web=True)
 
     # Reset bucket contents between tests
     def setUp(self):
         self.bucket.deleteFiles()
+        self.web_bucket.deleteFiles()
 
     def tearDown(self):
-#        self.bucket.deleteFiles()
-        pass
+        self.bucket.deleteFiles()
+        self.web_bucket.deleteFiles()
 
     def test_can_add_and_remove_files_in_bucket(self):
         files = {
@@ -89,6 +91,34 @@ class TestStoragePlugin(unittest.TestCase):
             data = error.read()
             print(data)
 
-    # This feature of the plugin is not workign yet....
+    # Add home page to bucket (and 404 page). 
+    # Check both files are served by default at bucket URL.
     def test_can_configure_website_for_bucket(self):
-        pass
+        index_filename = 'index-page.html'
+        index_contents = "<html><h1>Hello world!</h1></html>"
+
+        missing_filename = 'missing-page.html'
+        missing_contents = "<html><h1>Missing page!</h1></html>"
+
+        f = self.web_bucket.file(index_filename)
+        f.save(index_contents, 'text/html')
+
+        f = self.web_bucket.file(missing_filename)
+        f.save(missing_contents, 'text/html')
+
+        self.web_bucket.setWebsite(index_filename, missing_filename)
+
+        req = Request(self.web_bucket.url)
+        print(self.web_bucket.url)
+        resp = urlopen(req)
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(resp.read().decode('utf-8'), index_contents)
+
+        try:
+            req = Request(self.web_bucket.url + "/missing-file.txt")
+            resp = urlopen(req)
+        except HTTPError as e:
+            self.assertEqual(e.code, 404)
+            self.assertEqual(e.read().decode('utf-8'), missing_contents)
+        else:
+            self.fail("should return 404 response")
