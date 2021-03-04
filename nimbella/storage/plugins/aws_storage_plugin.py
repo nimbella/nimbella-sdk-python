@@ -95,7 +95,7 @@ class AWSStoragePlugin(AbstractStoragePlugin):
                 return self.credentials["weburl"]
             else:
                 hostname = urlparse(self.credentials["endpoint"]).netloc
-                return f"http://{self.namespace}-nimbella-io.{hostname}"
+                return f"http://{self.bucket_key}.{hostname}"
 
     def file(self, destination) -> S3StorageFile:
         return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3'))
@@ -128,4 +128,6 @@ class AWSStoragePlugin(AbstractStoragePlugin):
     @property
     def bucket_key(self):
         datapart = "" if self.web else "data-"
-        return f"{datapart}{self.namespace}-nimbella-io"
+        hostname = urlparse(self.apiHost).netloc
+        deployment = hostname.split(".")[0]
+        return f"{datapart}{self.namespace}-{deployment}-nimbella-io"
