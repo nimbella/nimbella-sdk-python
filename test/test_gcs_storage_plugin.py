@@ -36,7 +36,7 @@ class TestGoogleCloudStoragePlugin(unittest.TestCase):
         apiHost = 'https://this.is.a.host.com'
 
         gcs = GoogleCloudStoragePlugin(client, namespace, apiHost, True, '')
-        self.assertEqual(gcs.url, f'https://{namespace}-this-is-a-host-com')
+        self.assertEqual(gcs.url, f'https://{namespace}-this.is.a.host.com')
 
         # Data storage buckets should not return a URL
         gcs.web = False
