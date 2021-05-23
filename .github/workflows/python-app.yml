@@ -16,10 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.9
+    - name: Set up Python 3.7
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
-    - name: Test with pytest
+        python-version: 3.7
+    - name: Testing
       run: |
+        pip install -r requirements.txt
         python -m unittest
