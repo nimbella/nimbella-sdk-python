@@ -25,7 +25,7 @@ class TestRedisqlite(unittest.TestCase):
     def setUpClass(cls):
         os.environ['__NIM_REDIS_IP'] = '127.0.0.1'
         os.environ['__NIM_REDIS_PASSWORD'] = 'password'
-        os.system("docker run -d --name redisqlite --rm -p 6379:6379 sciabarracom/redisqlite:v1.0.3 --requirepass password >/dev/null")
+        os.system("docker run -d --name redisqlite --rm -p 6379:6379 sciabarracom/redisqlite:v1.0.4 --requirepass password >/dev/null")
 
     @classmethod
     def tearDownClass(cls):
