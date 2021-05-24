@@ -32,7 +32,7 @@ class TestRedisqlite(unittest.TestCase):
         os.system("docker kill redisqlite >/dev/null")
 
     def setUp(self):
-        self.sql = nimbella.sqlite()
+        self.sql = nimbella.esql()
         try: 
             self.sql.exec("drop table t")
         except:            

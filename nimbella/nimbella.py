@@ -35,7 +35,7 @@ def redis():
     else:
         return kv.Redis(host=redisIP, port=6379, password=redisPassword)
 
-def sqlite():
+def esql():
     return Redisqlite(redis())
 
 def storage(web=False):

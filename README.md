@@ -96,7 +96,7 @@ class StorageFile():
 
 #### Embedded SQL support
 
-You can access embedded sql with: `sql = nimbella.sqlite()`
+You can access embedded sql with: `sql = nimbella.esql()`
 
 Available methods are:
 
@@ -191,7 +191,6 @@ sql.prep(sel)
 ```
 
 Note that you can prepare up to 10000 statement at the same time without closing them, otherwise you will get an error `too many prepared statement`. In the unfortunate accident you fill the prepared statement cache, you can clear it with `prep("clean_prep_cache")`
-
 
 ## Support
 
