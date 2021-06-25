@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 import boto3
 import botocore
+import os
 
 # Simple wrapper around AWS S3 Object class to provide
 # generic "storage file" for this provider
@@ -71,6 +72,9 @@ class S3StorageFile(AbstractStorageFile):
 class AWSStoragePlugin(AbstractStoragePlugin):
     def __init__(self, client, namespace, apiHost, web, credentials):
         super().__init__(client, namespace, apiHost, web, credentials)
+        # workaround because the region is not specified in the credentials
+        # and cannot be added without breaking signatures
+        os.environ['AWS_DEFAULT_REGION'] = credentials['region']
         self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
 
     @staticmethod
