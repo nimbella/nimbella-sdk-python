@@ -74,7 +74,8 @@ class AWSStoragePlugin(AbstractStoragePlugin):
         super().__init__(client, namespace, apiHost, web, credentials)
         # workaround because the region is not specified in the credentials
         # and cannot be added without breaking signatures
-        os.environ['AWS_DEFAULT_REGION'] = credentials['region']
+        if 'region' in credentials:
+            os.environ['AWS_DEFAULT_REGION'] = credentials['region']
         self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
 
     @staticmethod
