@@ -79,11 +79,16 @@ class AWSStoragePlugin(AbstractStoragePlugin):
 
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
-        return credentials['credentials']
+        creds = {
+            'region': credentials['region'],
+            **credentials['credentials']
+        }
+        return creds
 
     @staticmethod
     def create_client(credentials: dict) ->  botocore.client.BaseClient:
         session = boto3.Session(
+            region_name=credentials['region'],
             aws_access_key_id=credentials['accessKeyId'],
             aws_secret_access_key=credentials['secretAccessKey'])
         return session
