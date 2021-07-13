@@ -71,7 +71,7 @@ class S3StorageFile(AbstractStorageFile):
 class AWSStoragePlugin(AbstractStoragePlugin):
     def __init__(self, client, namespace, apiHost, web, credentials):
         super().__init__(client, namespace, apiHost, web, credentials)
-        self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
+        self.bucket = self.client.resource('s3', endpoint_url=credentials.get('endpoint')).Bucket(self.bucket_key)
 
     @staticmethod
     def id() -> str:
@@ -80,7 +80,8 @@ class AWSStoragePlugin(AbstractStoragePlugin):
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
         creds = {
-            'region': credentials['region'],
+            'region': credentials.get('region'),
+            'endpoint': credentials.get('endpoint'),
             **credentials['credentials']
         }
         return creds

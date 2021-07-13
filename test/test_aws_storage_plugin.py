@@ -14,7 +14,16 @@ class TestAWSStoragePlugin(unittest.TestCase):
     def test_constructor(self):
         client = MagicMock()
         client.resource = MagicMock(return_value=MagicMock())
-        aws = AWSStoragePlugin(client, '', '', '', '')
+        aws = AWSStoragePlugin(client, '', '', '', {})
+        client.resource.assert_called_with('s3', endpoint_url=None)
+        client.resource().Bucket.assert_called_with(aws.bucket_key)
+
+    def test_constructor_with_endpoint(self):
+        client = MagicMock()
+        client.resource = MagicMock(return_value=MagicMock())
+        endpoint = "https://some.host.com"
+        aws = AWSStoragePlugin(client, '', '', '', { "endpoint": endpoint })
+        client.resource.assert_called_with('s3', endpoint_url=endpoint)
         client.resource().Bucket.assert_called_with(aws.bucket_key)
 
     def test_bucket_key_property(self):
@@ -25,7 +34,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
         # test bucket keys for web buckets
         web = True
-        aws = AWSStoragePlugin(client, namespace, apiHost, web, '')
+        aws = AWSStoragePlugin(client, namespace, apiHost, web, {})
         self.assertEqual(aws.bucket_key, f'{namespace}-{deployment}-nimbella-io')
 
         # test bucket keys for data buckets
@@ -66,7 +75,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
         client = MagicMock()
 
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         aws.bucket.delete_objects = MagicMock()
         aws.bucket.objects.filter = MagicMock(return_value=files)
         aws.bucket.Object = MagicMock(side_effect=lambda key: SimpleNamespace(key=key))
@@ -87,7 +96,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
             SimpleNamespace(key="folder/c-file"),
         ]
         keys = list(map(lambda f: f.key, files))
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
 
         aws.bucket.objects.filter = MagicMock(return_value=files)
         aws.bucket.Object = MagicMock(side_effect=lambda key: SimpleNamespace(key=key))
@@ -101,7 +110,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
         client = MagicMock()
         destination = 'folder/file.txt'
         obj = SimpleNamespace(key=destination)
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         aws.bucket.Object = MagicMock(return_value=obj)
 
         self.assertEqual(aws.file(destination).name, destination)
@@ -109,7 +118,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
     def test_bucket_set_website(self):
         client = MagicMock()
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         mainPageSuffix = "index.html"
         notFoundPage = "404.html"
         website = MagicMock()
@@ -123,7 +132,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
     def test_bucket_upload(self):
         client = MagicMock()
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         path = '/file/path.txt'
         destination = 'folder/path.txt'
         contentType = 'text/plain'
