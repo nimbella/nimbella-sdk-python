@@ -16,4 +16,4 @@
  */
 """
 
-from .nimbella import redis, storage
+from .nimbella import redis, storage, esql

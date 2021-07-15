@@ -94,6 +94,104 @@ class StorageFile():
     def signed_url(version: str, action: str, expires: int, contentType: str) -> str:
 ```
 
+#### Embedded SQL support
+
+You can access embedded sql with: `sql = nimbella.esql()`
+
+Available methods are:
+
+> `sql.exec(sql, *arg)` 
+
+Excecute an `sql` statement. The statement is either a string in [SQL](https://sqlite.org/lang.html) or an id returned by `sql.prep` (a prepared statement). 
+
+You can also pass multiple additional `args`, for parametric statementns.
+
+It returns an array of `[lastId, changedRows]`
+
+Values are significant where relevant (for insert or delete, but not for create for example).
+
+Example:
+
+```
+# single statement
+res = sql.exec("create table t(i int)")
+# parametric statement
+res = sql.exec("insert into t(i) values(?),(?),(?)",1,2,3)
+# returns [3,3]
+```
+
+> `sql.map(sql, *args [,limit=<n>])`
+
+Execute an `sql` statement. The statement is either a string in [SQL](https://sqlite.org/lang.html) or an id returned by `sql.prep` (a prepared statement). 
+
+You can also pass multiple additional `args`, for parametric statementns.
+
+It returns the result of an SQL query (like a `SELECT`) as an an array of dictionaries. Each dictionary is a record, where the keys are the fields and the values are the field values.
+
+The optional keyword argument is the maximum number of records returned, it will limit the size of the returned array to the first `<n>`
+
+
+Examples:
+
+```
+sql.map("select * from t")
+# returns [{"i":1},{"i":2},{"i":3}]
+sql.map("select * from t where i >?",1)
+# returns [{"i":2},{"i":3}]
+sql.map("select * from t where i >?",1,limit=1)
+# returns [{"i":2}]
+```
+
+> `sql.arr(sql, *args [,limit=<n>])`
+
+Execute an `sql` statement. The statement is either a string in [SQL](https://sqlite.org/lang.html) or an id returned by `sql.prep` (a prepared statement). 
+
+You can also pass multiple additional `args`, for parametric statements.
+
+It returns the result of an SQL query (like a `SELECT`) as an an array of arrays. Each array includes the field values of a record.
+
+The optional keyword argument is the maximum number of records returned, it will limit the size of the returned array to the first `<n>`
+
+Examples:
+
+```
+sql.map("select * from t")
+# returns [[1],[2],[3]]
+sql.map("select * from t where i >?",1)
+# returns [[2],[3]]
+sql.map("select * from t where i >?",1,limit=1)
+# returns [[2]]
+```
+
+> `prep(sql)`
+
+
+You can prepare statements to save time from precompiling.
+
+```
+ins =  sql.prep("insert into t(i) values(?)")
+sel = sql.prep("select * from t where i>?")
+```
+
+The returned value is a number and can be used to execute the statement with `exec`, `map` and `arr`.
+
+```
+# executing statement
+res = sql.exec(ins,1)
+# executing query
+m = sql.map(sel,1,limit=1)
+```
+
+When you do not need any more you can close the statement running prep again with the returned value.
+
+```
+# closing prepared statements
+sql.prep(ins)
+sql.prep(sel)
+```
+
+Note that you can prepare up to 10000 statement at the same time without closing them, otherwise you will get an error `too many prepared statement`. In the unfortunate accident you fill the prepared statement cache, you can clear it with `prep("clean_prep_cache")`
+
 ## Support
 
 We're always happy to help you with any issues you encounter. You may want to [join our Slack community](https://nimbella-community.slack.com/) to engage with us for a more rapid response.
