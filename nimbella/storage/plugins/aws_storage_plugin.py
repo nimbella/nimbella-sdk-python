@@ -129,5 +129,5 @@ class AWSStoragePlugin(AbstractStoragePlugin):
     def bucket_key(self):
         datapart = "" if self.web else "data-"
         hostname = urlparse(self.apiHost).netloc
-        deployment = hostname.split(".")[0]
-        return f"{datapart}{self.namespace}-{deployment}-nimbella-io"
+        deployment = hostname.replace(".", "-")
+        return f"{datapart}{self.namespace}-{deployment}"

@@ -21,30 +21,30 @@ class TestAWSStoragePlugin(unittest.TestCase):
         client = MagicMock()
         namespace = 'this-is-a-namespace'
         apiHost = 'https://this.is.a.host.com'
-        deployment = 'this'
+        deployment = 'this-is-a-host-com'
 
         # test bucket keys for web buckets
         web = True
         aws = AWSStoragePlugin(client, namespace, apiHost, web, '')
-        self.assertEqual(aws.bucket_key, f'{namespace}-{deployment}-nimbella-io')
+        self.assertEqual(aws.bucket_key, f'{namespace}-{deployment}')
 
         # test bucket keys for data buckets
         aws.web = False
-        self.assertEqual(aws.bucket_key, f'data-{namespace}-{deployment}-nimbella-io')
+        self.assertEqual(aws.bucket_key, f'data-{namespace}-{deployment}')
 
     def test_bucket_url(self):
         # test happy path using bucket location in creds
         client = MagicMock()
         namespace = 'this-is-a-namespace'
         apiHost = 'https://this.is.a.host.com'
-        deployment = 'this'
+        deployment = 'this-is-a-host-com'
         bucketHost = 'bucket.host.com'
         credentials = {
             "endpoint": f'https://{bucketHost}' 
         }
 
         aws = AWSStoragePlugin(client, namespace, apiHost, True, credentials)
-        self.assertEqual(aws.url, f'http://{namespace}-{deployment}-nimbella-io.{bucketHost}')
+        self.assertEqual(aws.url, f'http://{namespace}-{deployment}.{bucketHost}')
 
         # Test bucket credentials contain weburl
         weburl = "http://some_other_address.com"
