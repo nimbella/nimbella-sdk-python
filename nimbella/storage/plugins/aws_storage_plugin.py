@@ -71,7 +71,7 @@ class S3StorageFile(AbstractStorageFile):
 class AWSStoragePlugin(AbstractStoragePlugin):
     def __init__(self, client, namespace, apiHost, web, credentials):
         super().__init__(client, namespace, apiHost, web, credentials)
-        self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
+        self.bucket = self.client.resource('s3', endpoint_url=credentials.get('endpoint')).Bucket(self.bucket_key)
 
     @staticmethod
     def id() -> str:
@@ -79,11 +79,17 @@ class AWSStoragePlugin(AbstractStoragePlugin):
 
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
-        return credentials['credentials']
+        creds = {
+            'region': credentials.get('region'),
+            'endpoint': credentials.get('endpoint'),
+            **credentials['credentials']
+        }
+        return creds
 
     @staticmethod
     def create_client(credentials: dict) ->  botocore.client.BaseClient:
         session = boto3.Session(
+            region_name=credentials['region'],
             aws_access_key_id=credentials['accessKeyId'],
             aws_secret_access_key=credentials['secretAccessKey'])
         return session
