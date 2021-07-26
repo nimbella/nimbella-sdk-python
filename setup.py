@@ -27,7 +27,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='nimbella',
-    version='2.0.0',
+    version='2.0.1',
     author='Nimbella Corporation',
     author_email='info@nimbella.com',
     description='A python package to interact with Nimbella cloud services.',

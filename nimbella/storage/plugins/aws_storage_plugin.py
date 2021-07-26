@@ -62,7 +62,7 @@ class S3StorageFile(AbstractStorageFile):
         params = {
             "Bucket": self.file.Bucket().name,
             "Key": self.name,
-            "ResponseContentType": contentType
+            "ContentType": contentType
         }
         return self.client.generate_presigned_url(method, Params=params, ExpiresIn=expires)
 
