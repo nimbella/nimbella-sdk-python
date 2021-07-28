@@ -23,6 +23,7 @@ import redis as kv
 from google.cloud import storage as gstorage
 from google.oauth2 import service_account
 from .storage import plugin_manager
+from .redisqlite import Redisqlite
 
 def redis():
     redisIP = os.getenv('__NIM_REDIS_IP', "")
@@ -34,6 +35,8 @@ def redis():
     else:
         return kv.Redis(host=redisIP, port=6379, password=redisPassword)
 
+def esql():
+    return Redisqlite(redis())
 
 def storage(web=False):
     namespace = os.getenv('__OW_NAMESPACE', "")
