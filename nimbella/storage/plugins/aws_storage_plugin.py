@@ -59,10 +59,11 @@ class S3StorageFile(AbstractStorageFile):
 
     def signed_url(self, version: str, action: str, expires: int, contentType: str) -> str:
         method = f'{action.lower()}_object'
+        contentTypeKey = "ResponseContentType" if action.lower() == 'get' else 'ContentType'
         params = {
             "Bucket": self.file.Bucket().name,
             "Key": self.name,
-            "ResponseContentType": contentType
+            contentTypeKey: contentType
         }
         return self.client.generate_presigned_url(method, Params=params, ExpiresIn=expires)
 
@@ -104,7 +105,7 @@ class AWSStoragePlugin(AbstractStoragePlugin):
                 return f"http://{self.bucket_key}.{hostname}"
 
     def file(self, destination) -> S3StorageFile:
-        return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3'))
+        return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3', endpoint_url=self.credentials.get('endpoint')))
 
     def deleteFiles(self, prefix='') -> None:
         objects = self.bucket.objects.filter(Prefix=prefix)

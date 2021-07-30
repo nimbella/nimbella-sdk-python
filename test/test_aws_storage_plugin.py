@@ -146,3 +146,40 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
         aws.upload(path, destination, contentType, cacheControl)
         aws.bucket.upload_file.assert_called_with(path, destination, ExtraArgs=extraArgs)
+
+    def test_file_signedurl_get(self):
+        presigned_url = "https://some-url.com/"
+        client = MagicMock()
+        client.generate_presigned_url.return_value = presigned_url
+        destination = 'file.txt'
+        version = 'v4'
+        action = 'get'
+        bucket = 'my-bucket'
+        expires = 3600
+        contentType = 'text/plain'
+        s3_file = SimpleNamespace(key=destination, Bucket=lambda: SimpleNamespace(name=bucket))
+        file = S3StorageFile(s3_file, False, client)
+
+        url = file.signed_url(version=version, action=action, expires=expires, contentType=contentType)
+        self.assertEqual(url, presigned_url)
+        client.generate_presigned_url.assert_called_with('get_object', Params={'Bucket': bucket, 
+            'Key': destination, 'ResponseContentType': contentType}, ExpiresIn=expires)
+
+
+    def test_file_signedurl_put(self):
+        presigned_url = "https://some-url.com/"
+        client = MagicMock()
+        client.generate_presigned_url.return_value = presigned_url
+        destination = 'file.txt'
+        version = 'v4'
+        action = 'put'
+        bucket = 'my-bucket'
+        expires = 3600
+        contentType = 'text/plain'
+        s3_file = SimpleNamespace(key=destination, Bucket=lambda: SimpleNamespace(name=bucket))
+        file = S3StorageFile(s3_file, False, client)
+
+        url = file.signed_url(version=version, action=action, expires=expires, contentType=contentType)
+        self.assertEqual(url, presigned_url)
+        client.generate_presigned_url.assert_called_with('put_object', Params={'Bucket': bucket, 
+            'Key': destination, 'ContentType': contentType}, ExpiresIn=expires)
