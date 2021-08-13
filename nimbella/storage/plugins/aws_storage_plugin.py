@@ -59,10 +59,11 @@ class S3StorageFile(AbstractStorageFile):
 
     def signed_url(self, version: str, action: str, expires: int, contentType: str) -> str:
         method = f'{action.lower()}_object'
+        contentTypeKey = "ResponseContentType" if action.lower() == 'get' else 'ContentType'
         params = {
             "Bucket": self.file.Bucket().name,
             "Key": self.name,
-            "ResponseContentType": contentType
+            contentTypeKey: contentType
         }
         return self.client.generate_presigned_url(method, Params=params, ExpiresIn=expires)
 
@@ -71,7 +72,7 @@ class S3StorageFile(AbstractStorageFile):
 class AWSStoragePlugin(AbstractStoragePlugin):
     def __init__(self, client, namespace, apiHost, web, credentials):
         super().__init__(client, namespace, apiHost, web, credentials)
-        self.bucket = self.client.resource('s3').Bucket(self.bucket_key)
+        self.bucket = self.client.resource('s3', endpoint_url=credentials.get('endpoint')).Bucket(self.bucket_key)
 
     @staticmethod
     def id() -> str:
@@ -79,11 +80,17 @@ class AWSStoragePlugin(AbstractStoragePlugin):
 
     @staticmethod
     def prepare_creds(credentials: dict) -> dict:
-        return credentials['credentials']
+        creds = {
+            'region': credentials.get('region'),
+            'endpoint': credentials.get('endpoint'),
+            **credentials['credentials']
+        }
+        return creds
 
     @staticmethod
     def create_client(credentials: dict) ->  botocore.client.BaseClient:
         session = boto3.Session(
+            region_name=credentials['region'],
             aws_access_key_id=credentials['accessKeyId'],
             aws_secret_access_key=credentials['secretAccessKey'])
         return session
@@ -98,7 +105,7 @@ class AWSStoragePlugin(AbstractStoragePlugin):
                 return f"http://{self.bucket_key}.{hostname}"
 
     def file(self, destination) -> S3StorageFile:
-        return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3'))
+        return S3StorageFile(self.bucket.Object(destination), self.web, self.client.client('s3', endpoint_url=self.credentials.get('endpoint')))
 
     def deleteFiles(self, prefix='') -> None:
         objects = self.bucket.objects.filter(Prefix=prefix)

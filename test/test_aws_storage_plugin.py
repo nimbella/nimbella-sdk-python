@@ -14,7 +14,16 @@ class TestAWSStoragePlugin(unittest.TestCase):
     def test_constructor(self):
         client = MagicMock()
         client.resource = MagicMock(return_value=MagicMock())
-        aws = AWSStoragePlugin(client, '', '', '', '')
+        aws = AWSStoragePlugin(client, '', '', '', {})
+        client.resource.assert_called_with('s3', endpoint_url=None)
+        client.resource().Bucket.assert_called_with(aws.bucket_key)
+
+    def test_constructor_with_endpoint(self):
+        client = MagicMock()
+        client.resource = MagicMock(return_value=MagicMock())
+        endpoint = "https://some.host.com"
+        aws = AWSStoragePlugin(client, '', '', '', { "endpoint": endpoint })
+        client.resource.assert_called_with('s3', endpoint_url=endpoint)
         client.resource().Bucket.assert_called_with(aws.bucket_key)
 
     def test_bucket_key_property(self):
@@ -66,7 +75,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
         client = MagicMock()
 
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         aws.bucket.delete_objects = MagicMock()
         aws.bucket.objects.filter = MagicMock(return_value=files)
         aws.bucket.Object = MagicMock(side_effect=lambda key: SimpleNamespace(key=key))
@@ -87,7 +96,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
             SimpleNamespace(key="folder/c-file"),
         ]
         keys = list(map(lambda f: f.key, files))
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
 
         aws.bucket.objects.filter = MagicMock(return_value=files)
         aws.bucket.Object = MagicMock(side_effect=lambda key: SimpleNamespace(key=key))
@@ -101,7 +110,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
         client = MagicMock()
         destination = 'folder/file.txt'
         obj = SimpleNamespace(key=destination)
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         aws.bucket.Object = MagicMock(return_value=obj)
 
         self.assertEqual(aws.file(destination).name, destination)
@@ -109,7 +118,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
     def test_bucket_set_website(self):
         client = MagicMock()
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         mainPageSuffix = "index.html"
         notFoundPage = "404.html"
         website = MagicMock()
@@ -123,7 +132,7 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
     def test_bucket_upload(self):
         client = MagicMock()
-        aws = AWSStoragePlugin(client, '', '', True, '')
+        aws = AWSStoragePlugin(client, '', '', True, {})
         path = '/file/path.txt'
         destination = 'folder/path.txt'
         contentType = 'text/plain'
@@ -137,3 +146,40 @@ class TestAWSStoragePlugin(unittest.TestCase):
 
         aws.upload(path, destination, contentType, cacheControl)
         aws.bucket.upload_file.assert_called_with(path, destination, ExtraArgs=extraArgs)
+
+    def test_file_signedurl_get(self):
+        presigned_url = "https://some-url.com/"
+        client = MagicMock()
+        client.generate_presigned_url.return_value = presigned_url
+        destination = 'file.txt'
+        version = 'v4'
+        action = 'get'
+        bucket = 'my-bucket'
+        expires = 3600
+        contentType = 'text/plain'
+        s3_file = SimpleNamespace(key=destination, Bucket=lambda: SimpleNamespace(name=bucket))
+        file = S3StorageFile(s3_file, False, client)
+
+        url = file.signed_url(version=version, action=action, expires=expires, contentType=contentType)
+        self.assertEqual(url, presigned_url)
+        client.generate_presigned_url.assert_called_with('get_object', Params={'Bucket': bucket, 
+            'Key': destination, 'ResponseContentType': contentType}, ExpiresIn=expires)
+
+
+    def test_file_signedurl_put(self):
+        presigned_url = "https://some-url.com/"
+        client = MagicMock()
+        client.generate_presigned_url.return_value = presigned_url
+        destination = 'file.txt'
+        version = 'v4'
+        action = 'put'
+        bucket = 'my-bucket'
+        expires = 3600
+        contentType = 'text/plain'
+        s3_file = SimpleNamespace(key=destination, Bucket=lambda: SimpleNamespace(name=bucket))
+        file = S3StorageFile(s3_file, False, client)
+
+        url = file.signed_url(version=version, action=action, expires=expires, contentType=contentType)
+        self.assertEqual(url, presigned_url)
+        client.generate_presigned_url.assert_called_with('put_object', Params={'Bucket': bucket, 
+            'Key': destination, 'ContentType': contentType}, ExpiresIn=expires)

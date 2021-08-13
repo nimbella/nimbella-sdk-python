@@ -73,7 +73,7 @@ class TestStoragePlugin(unittest.TestCase):
         self.assertTrue(bf.exists())
         self.assertEqual(bf.download(), contents)
 
-    def test_can_generate_signedurl_for_file(self):
+    def test_can_generate_signedurl_for_file_get(self):
         filename = 'hello.txt'
         contents = "Hello world!\n"
         f = self.bucket.file(filename)
@@ -90,6 +90,29 @@ class TestStoragePlugin(unittest.TestCase):
         except HTTPError as error:
             data = error.read()
             print(data)
+            raise error
+
+    def test_can_generate_signedurl_for_file_put(self):
+        filename = 'new-file.txt'
+        contents = "Hello world!\n"
+        f = self.bucket.file(filename)
+
+        expires = 3600
+        method = "PUT"
+
+        headers = {
+            "Content-Type": "text/plain"
+        }
+        url = f.signed_url("v4", method, expires, "text/plain")
+        try: 
+            req = Request(url, headers=headers, data=contents.encode('utf-8'), method='PUT')
+            resp = urlopen(req)
+            self.assertTrue(f.exists())
+            self.assertEqual(f.download(), contents.encode('utf-8'))
+        except HTTPError as error:
+            data = error.read()
+            print(data)
+            raise error
 
     # Add home page to bucket (and 404 page). 
     # Check both files are served by default at bucket URL.
@@ -109,7 +132,6 @@ class TestStoragePlugin(unittest.TestCase):
         self.web_bucket.setWebsite(index_filename, missing_filename)
 
         req = Request(self.web_bucket.url)
-        print(self.web_bucket.url)
         resp = urlopen(req)
         self.assertEqual(resp.status, 200)
         self.assertEqual(resp.read().decode('utf-8'), index_contents)
